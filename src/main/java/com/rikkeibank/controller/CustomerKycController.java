@@ -17,6 +17,7 @@ public class CustomerKycController {
     @PostMapping(value = "/upload", consumes = "multipart/form-data")
     public ApiResponse<KycResponse> uploadKyc(Authentication authentication,
                                               @RequestParam("file") MultipartFile file) {
+        System.out.println("CONTROLLER HIT");
         System.out.println(file.getOriginalFilename());
 
         KycResponse response = kycService.uploadKyc(authentication.getName(), file);

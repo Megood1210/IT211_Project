@@ -46,7 +46,6 @@ public class AuthServiceImpl implements AuthService {
     public LoginResponse login(LoginRequest request) {
         User user = userRepository.findByUsername(request.getUsername()).orElseThrow();
 
-        System.out.println("INPUT PASSWORD = " + request.getPassword());
 
         System.out.println("DB PASSWORD = " + user.getPassword());
 
@@ -80,6 +79,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional
     public LoginResponse refreshToken(RefreshTokenRequest request) {
         RefreshToken oldToken = refreshTokenRepository.findByToken(request.getRefreshToken())
                 .orElseThrow(() -> new InvalidTokenException("Invalid refresh token"));

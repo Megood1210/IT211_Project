@@ -16,6 +16,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -42,12 +43,6 @@ public class KycServiceImpl implements KycService {
 
         if (contentType == null || (!contentType.equals("image/jpeg") && !contentType.equals("image/png"))) {
             throw new IllegalArgumentException("Only JPG/PNG allowed");
-        }
-
-        long maxSize = 5 * 1024 * 1024;
-
-        if (file.getSize() > maxSize) {
-            throw new FileUploadException("File exceeds 5MB");
         }
 
 
@@ -78,6 +73,7 @@ public class KycServiceImpl implements KycService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<KycResponse> getKycs(KycStatus status, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
 
@@ -97,6 +93,7 @@ public class KycServiceImpl implements KycService {
     }
 
     @Override
+    @Transactional
     public KycResponse approve(Long id) {
         KycProfile kyc = kycRepository.findById(id).orElseThrow(() ->
                 new ResourceNotFoundException("KYC not found"));

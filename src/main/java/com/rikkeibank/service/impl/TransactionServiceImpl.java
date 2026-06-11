@@ -77,6 +77,7 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<StatementResponse> getMyStatement(String username, int page, int size) {
         User user = userRepository.findByUsername(username).orElseThrow(() ->
                 new ResourceNotFoundException("User not found"));
