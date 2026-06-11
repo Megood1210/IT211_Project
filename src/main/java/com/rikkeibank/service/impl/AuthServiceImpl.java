@@ -12,6 +12,7 @@ import com.rikkeibank.entity.TokenBlacklist;
 import com.rikkeibank.entity.User;
 import com.rikkeibank.enums.RoleName;
 import com.rikkeibank.exception.InvalidTokenException;
+import com.rikkeibank.exception.ResourceNotFoundException;
 import com.rikkeibank.repository.*;
 import com.rikkeibank.security.jwt.JwtProvider;
 import com.rikkeibank.security.principal.CustomUserDetails;
@@ -44,47 +45,36 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public LoginResponse login(LoginRequest request) {
-        User user = userRepository.findByUsername(request.getUsername()).orElseThrow();
+        User user = userRepository.findByUsername(request.getUsername()).orElseThrow(() ->
+                new ResourceNotFoundException("User not found"));
 
+        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request
+                .getUsername(), request.getPassword()));
 
-        System.out.println("DB PASSWORD = " + user.getPassword());
-
-        boolean match = passwordEncoder.matches(request.getPassword(), user.getPassword());
-
-        System.out.println("MATCH = " + match);
-
-        try {
-            System.out.println("STEP 1");
-
-            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
-
-            System.out.println("STEP 2");
-
-        } catch (Exception e) {
-
-            e.printStackTrace();
-
-            throw e;
-        }
-
-        CustomUserDetails userDetails = (CustomUserDetails) userDetailsService.loadUserByUsername(request.getUsername());
+        CustomUserDetails userDetails = (CustomUserDetails) userDetailsService
+                .loadUserByUsername(request.getUsername());
 
         String accessToken = jwtProvider.generateAccessToken(userDetails);
 
         String refreshToken = jwtProvider.generateRefreshToken(userDetails);
 
-        refreshTokenRepository.save(RefreshToken.builder().token(refreshToken).expiryDate(LocalDateTime.now().plusDays(1)).user(user).build());
+        refreshTokenRepository.save(RefreshToken.builder().token(refreshToken)
+                .expiryDate(LocalDateTime.now().plusDays(1)).user(user).build());
 
-        return LoginResponse.builder().accessToken(accessToken).refreshToken(refreshToken).tokenType("Bearer").expiresIn(jwtProperties.getAccessTokenExpiration()).role(user.getRole().getName().name()).build();
+        return LoginResponse.builder().accessToken(accessToken).refreshToken(refreshToken)
+                .tokenType("Bearer").expiresIn(jwtProperties.getAccessTokenExpiration())
+                .role(user.getRole().getName().name()).build();
     }
 
     @Override
     @Transactional
     public LoginResponse refreshToken(RefreshTokenRequest request) {
+
         RefreshToken oldToken = refreshTokenRepository.findByToken(request.getRefreshToken())
                 .orElseThrow(() -> new InvalidTokenException("Invalid refresh token"));
 
         if (oldToken.getRevoked() || oldToken.getExpiryDate().isBefore(LocalDateTime.now())) {
+
             throw new InvalidTokenException("Refresh token expired");
         }
 
@@ -102,12 +92,12 @@ public class AuthServiceImpl implements AuthService {
                 .expiryDate(LocalDateTime.now().plusDays(1)).build());
 
         return LoginResponse.builder().accessToken(accessToken).refreshToken(refreshToken)
-                .tokenType("Bearer").expiresIn(jwtProperties.getAccessTokenExpiration())
-                .role(user.getRole().getName().name()).build();
+                .tokenType("Bearer").expiresIn(jwtProperties.getAccessTokenExpiration()).role(user.getRole().getName().name()).build();
     }
 
     @Override
     public void logout(String accessToken) {
+
         tokenBlacklistRepository.save(TokenBlacklist.builder().accessToken(accessToken)
                 .expiryAt(LocalDateTime.now().plusMinutes(5)).build());
     }
@@ -125,7 +115,8 @@ public class AuthServiceImpl implements AuthService {
 
         User user = User.builder().username(request.getUsername()).email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword())).isActive(true)
-                .role(roleRepository.findByName(RoleName.CUSTOMER).orElseThrow()).build();
+                .role(roleRepository.findByName(RoleName.CUSTOMER).orElseThrow(() ->
+                        new ResourceNotFoundException("Role not found"))).build();
 
         userRepository.save(user);
 

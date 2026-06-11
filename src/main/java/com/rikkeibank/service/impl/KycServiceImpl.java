@@ -41,14 +41,9 @@ public class KycServiceImpl implements KycService {
 
         String contentType = file.getContentType();
 
-        if (contentType == null || (!contentType.equals("image/jpeg") && !contentType.equals("image/png"))) {
-            throw new IllegalArgumentException("Only JPG/PNG allowed");
-        }
-
-
-        if (contentType == null || (!contentType.equals("image/jpeg") && !contentType
-                .equals("image/png"))) {
-            throw new FileUploadException("Only PNG/JPG allowed");
+        if (contentType == null || (!contentType.equals("image/jpeg") &&
+                !contentType.equals("image/png"))) {
+            throw new IllegalArgumentException("Only JPG/PNG files are allowed");
         }
 
         User user = userRepository.findByUsername(username).orElseThrow(() ->

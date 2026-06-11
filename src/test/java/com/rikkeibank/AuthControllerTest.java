@@ -29,7 +29,7 @@ class AuthControllerTest {
         LoginRequest request = new LoginRequest();
 
         request.setUsername("admin");
-        request.setPassword("123456");
+        request.setPassword("Admin@123");
 
         mockMvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request))).andExpect(status().isOk());

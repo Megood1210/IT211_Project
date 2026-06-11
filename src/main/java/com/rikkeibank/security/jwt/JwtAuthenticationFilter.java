@@ -2,12 +2,13 @@ package com.rikkeibank.security.jwt;
 
 import com.rikkeibank.repository.TokenBlacklistRepository;
 import com.rikkeibank.security.principal.CustomUserDetailsService;
-import jakarta.servlet.*;
-import jakarta.servlet.http.*;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -21,12 +22,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final TokenBlacklistRepository tokenBlacklistRepository;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
-        System.out.println("PATH = " + request.getServletPath());
-        System.out.println("CONTENT TYPE = " + request.getContentType());
         String authHeader = request.getHeader("Authorization");
-        System.out.println("HEADER = " + authHeader);
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
@@ -37,31 +36,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (tokenBlacklistRepository.existsByAccessToken(jwt)) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-
             response.getWriter().write("Token revoked");
-
             return;
         }
 
         String username = jwtProvider.extractUsername(jwt);
-        System.out.println("USERNAME = " + username);
-
-        System.out.println("JWT USERNAME = " + username);
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             var userDetails = userDetailsService.loadUserByUsername(username);
 
-            System.out.println("AUTHORITIES = " + userDetails.getAuthorities());
-
             if (jwtProvider.isTokenValid(jwt, userDetails)) {
-                UsernamePasswordAuthenticationToken auth =
-                        new UsernamePasswordAuthenticationToken(userDetails, null,
-                                userDetails.getAuthorities());
+                UsernamePasswordAuthenticationToken auth = new
+                        UsernamePasswordAuthenticationToken(userDetails, null,
+                        userDetails.getAuthorities());
 
                 SecurityContextHolder.getContext().setAuthentication(auth);
-
-                System.out.println("AUTH SET = " + SecurityContextHolder.getContext()
-                        .getAuthentication().getAuthorities());
             }
         }
 
